@@ -2,7 +2,6 @@ import {createStackNavigator, TransitionPresets} from '@react-navigation/stack';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import {NavigationContainer, NavigationContainerRef} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {useAppTheme} from '@/theme/context';
 import type {RootStackParamList} from '@/screens/navigation';
 import React from "react";
 import EuiccInfo from "@/screens/EuiccInfo";
@@ -13,7 +12,7 @@ import Settings from "@/screens/Settings/Settings";
 import Index from "@/screens/Stats";
 import Notifications from "@/screens/Notifications";
 import LeftSidebarDrawer from "@/screens/Drawer";
-import {Colors} from 'react-native-ui-lib';
+import {useTheme} from 'tamagui';
 import {ToastProvider} from "@/components/common/ToastProvider";
 import BluetoothScan from "@/screens/Bluetooth";
 import {LoadingProvider} from "@/components/common/LoadingProvider";
@@ -42,11 +41,11 @@ function StackNavigator() {
 	)
 }
 function ApplicationNavigator() {
-	const { theme, themeColor } = useAppTheme();
+	const tamaguiTheme = useTheme();
 	const navigationRef = React.createRef<NavigationContainerRef<RootStackParamList>>();
 
 	return (
-		<SafeAreaProvider key={theme + "_" + themeColor}>
+		<SafeAreaProvider>
 			<NavigationContainer ref={navigationRef}>
 				<ToastProvider>
 					<LoadingProvider>
@@ -58,7 +57,7 @@ function ApplicationNavigator() {
 								drawerStyle: {
 									maxWidth: '67%',
 									width: 250,
-									backgroundColor: Colors.pageBackground,
+									backgroundColor: tamaguiTheme.background?.val || '#fff',
 									borderTopRightRadius: 0,
 								},
 							}}
