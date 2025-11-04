@@ -1,16 +1,15 @@
 import {parseMetadata} from "@/utils/parser";
 import {findPhoneNumbersInText} from "libphonenumber-js/min";
 import {preferences, sizeStats} from "@/utils/mmkv";
-import { Swipeable } from 'react-native-gesture-handler';
-import { Card, Switch, Text, XStack, YStack, Stack, useTheme, getTokenValue } from 'tamagui';
+import {Swipeable} from 'react-native-gesture-handler';
+import {Card, Stack, Switch, Text, useTheme, XStack, YStack} from 'tamagui';
 // useTheme covers dynamic color; no need for useColorScheme here
-import {FontAwesomeIcon} from "@fortawesome/react-native-fontawesome";
-import {faPencil, faTrash} from "@fortawesome/free-solid-svg-icons";
-import {Alert, Image, PixelRatio, ToastAndroid, TouchableOpacity} from "react-native";
+import {Pencil, Trash2, GripVertical} from '@tamagui/lucide-icons';
+import {Alert, Image, PixelRatio, Pressable, ToastAndroid, TouchableOpacity, View} from "react-native";
 import {makeLoading} from "@/components/utils/loading";
 import {Flags} from "@/assets/flags";
 import {formatSize} from "@/utils/size";
-import React, {useMemo, useCallback} from "react";
+import React, {useCallback, useMemo} from "react";
 import {useTranslation} from "react-i18next";
 import {useNavigation} from "@react-navigation/native";
 import {Profile} from "@/native/types";
@@ -68,17 +67,17 @@ const ProfileSubtitle = React.memo(({
   // Theme-aware; no direct Appearance usage needed
 
   return (
-    <Text color="$color10" numberOfLines={1} fontSize={11}>
+    <Text color="$color6" numberOfLines={1} fontSize={11}>
       {subtitleText}
     </Text>
   );
 });
 
-export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId: string}) => {
+const ProfileRowComponent = ({profile, deviceId, drag, isActive = false, press, rearrangeMode = false} : {profile: ProfileExt, deviceId: string, drag: any, isActive?: boolean, press?: (pressed: boolean) => void, rearrangeMode?: boolean}) => {
   const { t } = useTranslation(['main']);
   const adapter = Adapters[deviceId];
   const { setLoading, isLoading } = useLoading();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const theme = useTheme();
 
   // Memoize preferences
@@ -93,39 +92,48 @@ export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId:
 
   // Memoize metadata processing
   const metadata = profile;
-  const { tags, name, country, mccMnc } = useMemo(() =>
+  const { tags, name, country, mccMnc, order } = useMemo(() =>
     parseMetadata(metadata, t),
     [metadata, t]
   );
 
   // Memoize ICCID calculations
   const { numICCID, hueICCID } = useMemo(() => {
-    const numICCID = metadata.iccid.replaceAll(/\D/g, '');
-    const hueICCID = (parseInt(numICCID.substring(numICCID.length - 7), 10) * 17.84) % 360;
+    const iccid = String(metadata?.iccid ?? "");
+    const numICCID = iccid.replaceAll(/\D/g, '');
+    const hueICCID = numICCID.length >= 7
+      ? (parseInt(numICCID.substring(numICCID.length - 7), 10) * 17.84) % 360
+      : 0;
     return { numICCID, hueICCID };
-  }, [metadata.iccid]);
+  }, [metadata?.iccid]);
 
   // Memoize phone number processing
   const replacedName = useMemo(() => {
+    if (!name) return "";
     const phoneNumbers = findPhoneNumbersInText(name, country as any);
     let result = name;
 
     for (const p of phoneNumbers) {
+      if (p.startsAt >= 0 && p.endsAt <= name.length) {
+        const match = name.substring(p.startsAt, p.endsAt);
+        if (match[0] !== "+") continue;
+        const formatted = p.number.formatInternational();
 
-      const match = name.substring(p.startsAt, p.endsAt);
-      if (match[0] !== "+") continue;
-      const formatted = p.number.formatInternational();
-
-      if (stealthMode === 'medium') {
-        const ccPrefix = "+" + p.number.countryCallingCode + " ";
-        const toReplace = formatted.substring(ccPrefix.length);
-        result = result.replaceAll(
-          match, ccPrefix + toReplace.replaceAll(/\d/g, '*')
-        );
-      } else {
-        result = result.replaceAll(match, formatted);
+        if (stealthMode === 'medium') {
+          const ccPrefix = "+" + p.number.countryCallingCode + " ";
+          const toReplace = formatted.length > ccPrefix.length
+            ? formatted.substring(ccPrefix.length)
+            : "";
+          result = result.replaceAll(
+            match, ccPrefix + toReplace.replaceAll(/\d/g, '*')
+          );
+        } else {
+          result = result.replaceAll(match, formatted);
+        }
       }
     }
+
+
 
     return result;
   }, [name, country, stealthMode]);
@@ -142,13 +150,15 @@ export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId:
 
   // Memoize handlers
   const handleProfilePress = useCallback(() => {
+    // Disable navigation in rearrange mode
+    if (rearrangeMode) return;
     // @ts-ignore
     navigation.navigate('Profile', {
       iccid: metadata.iccid,
       metadata: metadata,
       deviceId: deviceId,
     });
-  }, [navigation, metadata, deviceId]);
+  }, [navigation, metadata, deviceId, rearrangeMode]);
 
   const handleEditPress = useCallback(() => {
     handleProfilePress();
@@ -234,7 +244,7 @@ export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId:
           borderBottomRightRadius: 12,
         }}
       >
-        <FontAwesomeIcon icon={faTrash} style={{ color: (theme.backgroundDefault?.val || '#fff') }} />
+        <Trash2 size={18} color={theme.backgroundDefault?.val || '#fff'} />
       </TouchableOpacity>
     );
   }, [handleDeletePress, profile.selected, theme.backgroundDangerHeavy?.val, theme.backgroundDefault?.val]);
@@ -252,18 +262,12 @@ export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId:
         borderBottomLeftRadius: 12,
       }}
     >
-      <FontAwesomeIcon icon={faPencil} style={{ color: (theme.backgroundDefault?.val || '#fff') }} />
+      <Pencil size={18} color={theme.backgroundDefault?.val || '#fff'} />
     </TouchableOpacity>
   ), [handleEditPress, theme.backgroundSuccessLight?.val, theme.backgroundDefault?.val]);
 
   // Use tamagui theme token directly (updates on theme change)
-  const primaryColor = theme.buttonBackground?.val || theme.accentColor?.val;
-
-  // Unified switch colors (selected vs base). Base tuned for dark theme to be less bright.
-  const switchBaseColor = theme.color7?.val;
-
-  const switchTrackColor = profile.selected ? primaryColor : switchBaseColor;
-  const switchBorderColor = profile.selected ? primaryColor : switchBaseColor;
+  const primaryColor = theme.buttonBackground?.val || theme.primaryColor?.val;
 
   return (
     <Swipeable
@@ -271,19 +275,44 @@ export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId:
       renderLeftActions={renderLeftActions}
       overshootFriction={8}
       friction={2}
+      enabled={!isActive && !rearrangeMode}
     >
       <Card
-        backgroundColor="$surfaceSpecial"
+        backgroundColor={isActive ? '$surfaceHover' : '$surfaceSpecial'}
         borderWidth={0}
         borderRadius={12}
         overflow="hidden"
         padding={0}
+        opacity={isActive ? 0.95 : 1}
+        shadowColor={isActive ? "$buttonBackground" : 'transparent'}
+        style={{
+          transform: [{ scale: isActive ? 1.02 : 1 }],
+          shadowOffset: isActive ? { width: 0, height: 4 } : { width: 0, height: 0 },
+          shadowOpacity: isActive ? 0.3 : 0,
+          shadowRadius: isActive ? 8 : 0,
+          elevation: isActive ? 8 : 0,
+        }}
       >
-        <YStack paddingTop={5} paddingLeft={15} paddingRight={15} gap={5}>
-          <XStack width="100%" alignItems="flex-start">
-            <TouchableOpacity
+        <YStack paddingTop={5} paddingLeft={rearrangeMode ? 0 : 15} paddingRight={15} gap={5}>
+          <XStack width="100%" alignItems="flex-start" gap={8}>
+            {rearrangeMode && (
+              <TouchableOpacity
+                onLongPress={drag}
+                onPressIn={() => press?.(true)}
+                onPressOut={() => press?.(false)}
+                delayLongPress={100}
+                style={{ padding: 8 }}
+                activeOpacity={0.6}
+              >
+                <GripVertical size={18} color={theme.color6?.val || '#888'} />
+              </TouchableOpacity>
+            )}
+
+            {/* Main content - scrollable area, no drag interference */}
+            <Pressable
               style={{ flexShrink: 1, flexGrow: 1 }}
               onPress={handleProfilePress}
+              delayLongPress={10000}
             >
               <XStack gap={6} alignItems="center">
                 <Image
@@ -305,28 +334,28 @@ export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId:
                 />
               </XStack>
               <ProfileTags tags={tags} stealthMode={stealthMode} />
-            </TouchableOpacity>
+            </Pressable>
 
             <XStack padding={5} width={50}>
               <Switch
                 checked={profile.selected}
-                disabled={isLoading !== false}
-                size={"$3" as any}
+                disabled={isLoading}
+                size={"$2.5" as any}
+                borderColor={profile.selected ? "$primaryColor" : "$color6"}
                 style={{
                   marginTop: -4,
-                  borderWidth: 0.5,
-                  borderColor: switchBorderColor,
+                  borderWidth: 1,
                 }}
-                backgroundColor={switchTrackColor}
-                onCheckedChange={(val: boolean) => handleSwitchChange(!!val)}
+                backgroundColor={profile.selected ? "$primaryColor" : "$color6"}
+                onCheckedChange={(val: boolean) => handleSwitchChange(val)}
               >
                 <Switch.Thumb
-                  backgroundColor={theme.backgroundDefault?.val || '#ffffff'}
-                  style={{ borderWidth: 0.5, borderColor: switchBorderColor }}
+                  backgroundColor={"$backgroundDefault"}
+                  borderColor={"$color6"}
+                  style={{ borderWidth: 0, borderColor: "$color6" }}
                 />
               </Switch>
             </XStack>
-
             {Size > 1536 && (
               <Text
                 color="$textNeutral"
@@ -346,3 +375,16 @@ export const ProfileRow = ({profile, deviceId} : {profile: ProfileExt, deviceId:
     </Swipeable>
   );
 };
+
+// Memoize ProfileRow to prevent unnecessary re-renders when rearrangeMode changes
+export const ProfileRow = React.memo(ProfileRowComponent, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.profile.iccid === nextProps.profile.iccid &&
+    prevProps.profile.profileState === nextProps.profile.profileState &&
+    prevProps.profile.profileNickname === nextProps.profile.profileNickname &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.rearrangeMode === nextProps.rearrangeMode &&
+    prevProps.deviceId === nextProps.deviceId
+  );
+});

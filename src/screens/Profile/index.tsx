@@ -6,8 +6,7 @@ import type {RootScreenProps} from "@/screens/navigation";
 import {Button as TButton, Input, Text as TText, useTheme, XStack, YStack} from 'tamagui';
 import AppSheet from '@/components/common/AppSheet';
 import {useSelector} from "react-redux";
-import {FontAwesomeIcon} from "@fortawesome/react-native-fontawesome";
-import {faCopy, faPencil, faTimes} from "@fortawesome/free-solid-svg-icons";
+import {Copy, Pencil, X} from '@tamagui/lucide-icons';
 import Clipboard from "@react-native-clipboard/clipboard";
 import {dateToDate6, parseMetadata, Tag} from "@/utils/parser";
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -40,7 +39,7 @@ function MetadataRow({
     >
       <YStack paddingVertical={10}>
         <XStack alignItems="center" justifyContent="space-between" gap={12}>
-          <TText color="$color10" fontSize={12} style={{ minWidth: 100, flexShrink: 0 }}>
+          <TText color="$color6" fontSize={12} style={{ minWidth: 100, flexShrink: 0 }}>
             {label}
           </TText>
           <XStack alignItems="center" gap={8} flex={1} flexShrink={1}>
@@ -61,11 +60,7 @@ function MetadataRow({
               />
             )}
             {value && (
-              <FontAwesomeIcon
-                icon={faCopy}
-                size={12}
-                style={{ color: theme.color10?.val || '#999' }}
-              />
+              <Copy size={12} color={theme.color6?.val || '#999'} />
             )}
           </XStack>
         </XStack>
@@ -114,6 +109,13 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
 
   const updateNickname = (n: string) => {
     makeLoading(setLoading, async () => {
+      // Preserve the order suffix if it exists
+      if (metadata?.profileNickname) {
+        const orderSuffixMatch = metadata.profileNickname.match(/\^[a-z]{3}$/);
+        if (orderSuffixMatch) {
+          n = n + orderSuffixMatch[0]; // Add the ^xxx suffix
+        }
+      }
       await adapter.setNicknameByIccId(iccid, n);
     });
   }
@@ -139,9 +141,9 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
               <XStack gap={8}>
                 <TButton
                   onPress={() => setNewTagType('date')}
-                  backgroundColor={newTagType === 'date' ? (theme.accentColor?.val) : 'transparent'}
+                  backgroundColor={newTagType === 'date' ? (theme.primaryColor?.val) : 'transparent'}
                   borderWidth={1}
-                  borderColor={newTagType === 'date' ? (theme.accentColor?.val) : (theme.outlineNeutral?.val || '#ccc')}
+                  borderColor={newTagType === 'date' ? (theme.primaryColor?.val) : (theme.outlineNeutral?.val || '#ccc')}
                   paddingHorizontal={12}
                   paddingVertical={8}
                   borderRadius={8}
@@ -152,9 +154,9 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
                 </TButton>
                 <TButton
                   onPress={() => setNewTagType('text')}
-                  backgroundColor={newTagType === 'text' ? (theme.accentColor?.val) : 'transparent'}
+                  backgroundColor={newTagType === 'text' ? (theme.primaryColor?.val) : 'transparent'}
                   borderWidth={1}
-                  borderColor={newTagType === 'text' ? (theme.accentColor?.val) : (theme.outlineNeutral?.val || '#ccc')}
+                  borderColor={newTagType === 'text' ? (theme.primaryColor?.val) : (theme.outlineNeutral?.val || '#ccc')}
                   paddingHorizontal={12}
                   paddingVertical={8}
                   borderRadius={8}
@@ -212,7 +214,7 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
                   borderColor={theme.outlineNeutral?.val || theme.borderColor?.val || '#777'}
                   backgroundColor="transparent"
                   color={theme.textDefault?.val}
-                  placeholderTextColor={theme.color10?.val}
+                  placeholderTextColor={theme.color6?.val}
                   fontSize={16}
                   padding={0}
                   paddingBottom={8}
@@ -228,7 +230,7 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
                 }
                 setTagModal(false);
               }}
-              backgroundColor="$accentColor"
+              backgroundColor="$btnBackground"
             >
                 <TText color={theme.background?.val || '#fff'} fontSize={16}>Save</TText>
             </TButton>
@@ -247,20 +249,20 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
              borderColor={theme.outlineNeutral?.val || theme.borderColor?.val || '#777'}
              backgroundColor="transparent"
              color={theme.textDefault?.val}
-             placeholderTextColor={theme.color10?.val}
+             placeholderTextColor={theme.color6?.val}
              fontSize={16}
              padding={0}
              paddingBottom={8}
            />
            <XStack justifyContent="space-between" alignItems="center">
-             <TText color="$color10" fontSize={11}>{`${getUTF8Length(nickname + tagChars)}/64`}</TText>
+             <TText color="$color6" fontSize={11}>{`${getUTF8Length(nickname + tagChars)}/64`}</TText>
              <TButton
                disabled={isLoading}
                onPress={() => {
                  updateNickname(nickname + tagChars);
                  setRenameModal(false);
                }}
-               backgroundColor="$accentColor"
+               backgroundColor="$btnBackground"
              >
                <TText color={theme.background?.val || '#fff'} fontSize={14}>Save</TText>
              </TButton>
@@ -306,12 +308,12 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
                  padding={0}
                  borderRadius={8}
                >
-                 <FontAwesomeIcon icon={faPencil} size={14} style={{ color: theme.color10?.val || '#777' }} />
+                 <Pencil size={14} color={theme.color6?.val || '#777'} />
                </TButton>
             </XStack>
             {metadata?.serviceProviderName && (
               <TText
-                color="$color10"
+                color="$color6"
                 fontSize={14}
                 numberOfLines={1}
                 adjustsFontSizeToFit
@@ -364,7 +366,7 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
                       <TText color={tag.color} fontSize={14} fontWeight="500">
                         {tag.value}
                       </TText>
-                      <FontAwesomeIcon icon={faTimes} size={10} style={{ color: tag.color }} />
+                      <X size={10} color={tag.color} />
                     </XStack>
                   </TouchableOpacity>
                 )
@@ -373,7 +375,7 @@ function Profile({ route,  navigation }: RootScreenProps<'Profile'>) {
              <XStack justifyContent="flex-end" marginTop={8}>
                <TButton
                  onPress={() => setTagModal(true)}
-                 backgroundColor="$accentColor"
+                 backgroundColor="$btnBackground"
                  borderRadius={8}
                  height={32}
                  paddingHorizontal={10}

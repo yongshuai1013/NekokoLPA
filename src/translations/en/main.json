@@ -18,6 +18,7 @@
   "bluetooth_scan": "Bluetooth",
 
   "euiccInfo_euiccinfo": "EUICC Info",
+  "euiccInfo_subtitle": "Device and eUICC details",
   "euiccInfo_sasAcreditationNumber": "SAS Accreditation",
   "euiccInfo_profileVersion": "Profile Version",
   "euiccInfo_globalplatformVersion": "Global Platform Version",
@@ -36,11 +37,13 @@
   "main_screen": "Main Screen",
 
   "backup": "Backup",
-  "backup_export": "Export Sizes",
-  "backup_import": "Import Sizes",
+  "backup_description": "This can be used to export downloaded profile sizes, configurations and other locally stored data, to preserve across reinstalls or device changes.",
+  "backup_export": "Export Data",
+  "backup_import": "Import Data",
 
 
   "settings_settings": "Settings",
+  "settings_subtitle": "Customize app preferences",
   "settings_title_showSlots": "SIM Slot display rules",
   "settings_item_showSlots_all": "All SIM card slots",
   "settings_item_showSlots_possible": "OMAPI-enabled slots",

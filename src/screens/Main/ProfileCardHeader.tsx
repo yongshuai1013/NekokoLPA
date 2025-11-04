@@ -1,17 +1,16 @@
-import {Button as TButton, Card, Text as TText, useTheme, XStack, YStack} from 'tamagui';
+import {Button as TButton, Card, Input, Text as TText, useTheme, XStack, YStack} from 'tamagui';
 import AppSheet from '@/components/common/AppSheet';
-import {NativeModules, Platform, ToastAndroid, TouchableOpacity, View} from 'react-native';
+import {Platform, ToastAndroid, TouchableOpacity, View} from 'react-native';
 import React, {useCallback, useMemo, useState} from "react";
 import {useSelector} from "react-redux";
-import {MessageSquareShare, Plus} from '@tamagui/lucide-icons';
+import {GripVertical, MessageSquareShare, Plus} from '@tamagui/lucide-icons';
 import {useNavigation} from "@react-navigation/native";
 import {useTranslation} from "react-i18next";
 import {Adapters} from "@/native/adapters/registry";
 import Clipboard from "@react-native-clipboard/clipboard";
-import prompt from "react-native-prompt-android";
 import {preferences} from "@/utils/mmkv";
 import {formatSize} from "@/utils/size";
-import {toCIName, toFriendlyName} from "@/utils/friendlyName";
+import {toFriendlyName} from "@/utils/friendlyName";
 import {getNicknameByEid, setNicknameByEid} from "@/configs/store";
 import {RootState} from "@/redux/reduxDataStore";
 import {makeLoading} from "@/components/utils/loading";
@@ -27,7 +26,10 @@ const ActionSheetOptions = React.memo(({
                                          euiccMenu,
                                          setEuiccMenu,
                                          setLoading,
-                                         showToast
+                                         showToast,
+                                         setNicknameSheetOpen,
+                                         rearrangeMode,
+                                         setRearrangeMode
                                        }: {
   deviceId: string;
   DeviceState: any;
@@ -37,6 +39,9 @@ const ActionSheetOptions = React.memo(({
   setEuiccMenu: (visible: boolean) => void;
   setLoading: any;
   showToast: any;
+  setNicknameSheetOpen: (open: boolean) => void;
+  rearrangeMode?: boolean;
+  setRearrangeMode?: (enabled: boolean) => void;
 }) => {
   const { t } = useTranslation(['main']);
 
@@ -46,7 +51,7 @@ const ActionSheetOptions = React.memo(({
   }, [DeviceState.eid]);
 
   const handleOpenSTK = useCallback(() => {
-    const { OMAPIBridge } = NativeModules;
+    const { OMAPIBridge } = require("@/native/modules");
     OMAPIBridge.openSTK(adapter.device.deviceName);
   }, [adapter.device.deviceName]);
 
@@ -55,22 +60,9 @@ const ActionSheetOptions = React.memo(({
   }, [navigation, deviceId]);
 
   const handleSetNickname = useCallback(() => {
-    prompt(
-      t('main:set_nickname'),
-      t('main:set_nickname_prompt'),
-      [
-        {text: 'Cancel', onPress: () => {}, style: 'cancel'},
-        {text: 'OK', onPress: (nickname: string) => {
-            if (DeviceState!.eid) setNicknameByEid(DeviceState!.eid!, nickname);
-          }},
-      ],
-      {
-        cancelable: true,
-        defaultValue: getNicknameByEid(DeviceState.eid!),
-        placeholder: 'placeholder'
-      }
-    );
-  }, [t, DeviceState.eid]);
+    setEuiccMenu(false);
+    setNicknameSheetOpen(true);
+  }, [setEuiccMenu, setNicknameSheetOpen]);
 
   const handleManageNotifications = useCallback(() => {
     navigation.navigate('Notifications', { deviceId });
@@ -91,6 +83,10 @@ const ActionSheetOptions = React.memo(({
     {
       label: t('main:eid_copy'),
       onPress: handleEidCopy
+    },
+    {
+      label: rearrangeMode ? 'Done Rearranging' : 'Rearrange Profiles',
+      onPress: () => setRearrangeMode && setRearrangeMode(!rearrangeMode)
     },
     ...(((Platform.OS === 'android' && deviceId.startsWith("omapi")) ? [{
       label: t('main:open_stk_menu'),
@@ -113,29 +109,26 @@ const ActionSheetOptions = React.memo(({
       onPress: handleSendNotifications
     },
   ], [
-    t, deviceId, adapter, navigation,
+    t, deviceId, adapter, navigation, setEuiccMenu, setNicknameSheetOpen,
     handleEidCopy, handleOpenSTK, handleEuiccInfo,
-    handleSetNickname, handleManageNotifications, handleSendNotifications
+    handleSetNickname, handleManageNotifications, handleSendNotifications,
+    rearrangeMode, setRearrangeMode
   ]);
 
-  const theme = useTheme();
   return (
-    <AppSheet open={euiccMenu} onOpenChange={setEuiccMenu} title={`EID: ${DeviceState?.eid}`}>
+    <AppSheet open={euiccMenu} onOpenChange={setEuiccMenu} title={`EID: ${DeviceState?.eid}`} titleProps={{
+      fontSize: 14,
+    }}>
       <YStack>
         {options.map((opt, idx) => (
-          <View key={idx}>
-            <TouchableOpacity
-              activeOpacity={0.6}
-              onPress={() => { setEuiccMenu(false); opt.onPress(); }}
-            >
-              <View style={{ paddingVertical: 12, paddingHorizontal: 16 }}>
-                <TText color="$textDefault" fontSize={14}>{opt.label}</TText>
-              </View>
-            </TouchableOpacity>
-            {idx < options.length - 1 && (
-              <View style={{ height: 1, backgroundColor: (theme.outlineNeutral?.val || '#e6e6ea'), opacity: 0.4 }} />
-            )}
-          </View>
+          <TouchableOpacity
+            key={idx}
+            activeOpacity={0.6}
+            onPress={() => { setEuiccMenu(false); opt.onPress(); }}
+            style={{ paddingBottom: 24 }}
+          >
+            <TText color="$textDefault" fontSize={14}>{opt.label}</TText>
+          </TouchableOpacity>
         ))}
       </YStack>
     </AppSheet>
@@ -161,14 +154,6 @@ const CardContent = React.memo(({
           {t('main:available_space', {
             size: formatSize(DeviceState.bytesFree),
           })}
-        </TText>
-        <TText
-          color="$textDefault"
-          fontSize={11}
-          style={{ textAlign: 'right', flexGrow: 1 }}
-          numberOfLines={1}
-        >
-          CI: {DeviceState.euiccInfo2?.euiccCiPKIdListForSigning.map((x: any) => toCIName(x)).join(', ')}
         </TText>
       </View>
 
@@ -208,11 +193,19 @@ const RoundedButton = (props: any) => {
   );
 }
 
-export default function ProfileCardHeader({ deviceId } : { deviceId: string }) {
+export default function ProfileCardHeader({ deviceId, rearrangeMode, setRearrangeMode } : { deviceId: string, rearrangeMode?: boolean, setRearrangeMode?: (enabled: boolean) => void }) {
   const theme = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const { t } = useTranslation(['main']);
   const [euiccMenu, setEuiccMenu] = useState(false);
+  const [nicknameSheetOpen, setNicknameSheetOpen] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState('');
   const DeviceState = useSelector((state: RootState) => state.DeviceState[deviceId]) ?? {};
+
+  // Button colors from theme - calculated in theme generation
+  // Rearrange button: active (primaryColor) in rearrange mode, alternative (btnAltBackground) in normal mode
+  const rearrangeBgColor = rearrangeMode ? "$primaryColor" : "$btnAltBackground";
+  const rearrangeFgColor = rearrangeMode ? "$btnForeground" : "$btnAltForeground";
 
   // Memoize preferences
   const stealthMode = useMemo(() =>
@@ -226,10 +219,10 @@ export default function ProfileCardHeader({ deviceId } : { deviceId: string }) {
 
   // Memoize EID processing
   const { eid, maskedEid } = useMemo(() => {
-    const eid = (DeviceState?.eid) ?? "";
-    const maskedEid = stealthMode === 'none' ? eid : (
-      eid.substring(0, stealthMode === 'medium' ? 18 : 13) + "..."
-    );
+    const eid = String(DeviceState?.eid ?? "");
+    const maskedEid = eid.length > 16
+      ? eid.substring(0, 8) + "..." + eid.substring(eid.length - 8)
+      : eid;
     return { eid, maskedEid };
   }, [DeviceState?.eid, stealthMode]);
 
@@ -249,6 +242,24 @@ export default function ProfileCardHeader({ deviceId } : { deviceId: string }) {
     setEuiccMenu(true);
   }, []);
 
+  const handleNicknameSubmit = useCallback(() => {
+    if (DeviceState?.eid) {
+      setNicknameByEid(DeviceState.eid, nicknameInput);
+      setNicknameSheetOpen(false);
+      setNicknameInput('');
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Nickname saved', ToastAndroid.SHORT);
+      }
+    }
+  }, [DeviceState?.eid, nicknameInput]);
+
+  // Initialize nickname input when sheet opens
+  React.useEffect(() => {
+    if (nicknameSheetOpen && DeviceState?.eid) {
+      setNicknameInput(getNicknameByEid(DeviceState.eid) || '');
+    }
+  }, [nicknameSheetOpen, DeviceState?.eid]);
+
   return (
     <View>
       {shouldShowActionSheet && (
@@ -261,8 +272,56 @@ export default function ProfileCardHeader({ deviceId } : { deviceId: string }) {
           setEuiccMenu={setEuiccMenu}
           setLoading={setLoading}
           showToast={showToast}
+          setNicknameSheetOpen={setNicknameSheetOpen}
+          rearrangeMode={rearrangeMode}
+          setRearrangeMode={setRearrangeMode}
         />
       )}
+
+      {
+        nicknameSheetOpen && (
+          <AppSheet
+            open={nicknameSheetOpen}
+            onOpenChange={setNicknameSheetOpen}
+            title={t('main:set_nickname')}
+          >
+            <YStack gap={16}>
+              <TText color="$color6" fontSize={14}>
+                {t('main:set_nickname_prompt')}
+              </TText>
+              <Input
+                placeholder={t('main:set_nickname_prompt')}
+                value={nicknameInput}
+                onChangeText={setNicknameInput}
+                borderWidth={0.5}
+                borderColor={theme.outlineNeutral?.val || theme.borderColor?.val || '#777'}
+                backgroundColor="transparent"
+                color={theme.textDefault?.val}
+                placeholderTextColor={theme.color6?.val}
+                fontSize={16}
+                autoFocus
+              />
+              <XStack gap={10} justifyContent="flex-end">
+                <TButton
+                  onPress={() => {
+                    setNicknameSheetOpen(false);
+                    setNicknameInput('');
+                  }}
+                  backgroundColor="$color12"
+                >
+                  <TText>Cancel</TText>
+                </TButton>
+                <TButton
+                  onPress={handleNicknameSubmit}
+                  backgroundColor="$btnBackground"
+                >
+                  <TText>OK</TText>
+                </TButton>
+              </XStack>
+            </YStack>
+          </AppSheet>
+        )
+      }
 
       <Card
         backgroundColor={theme.surfaceSpecial?.val}
@@ -274,21 +333,22 @@ export default function ProfileCardHeader({ deviceId } : { deviceId: string }) {
         height={40}
       >
         <XStack flex={1} alignItems="center">
-          <RoundedButton
-            backgroundColor="$color10"
-            icon={<MessageSquareShare size="$1" />}
-            onPress={() => {navigation.navigate('Notifications', { deviceId });}}
-            radiusL={12}
-            radiusR={0}
-          />
+          {/* Rearrange moved into action sheet menu */}
           <CardContent
             DeviceState={DeviceState}
             maskedEid={maskedEid}
             supplementText={supplementText}
           />
           <RoundedButton
-            backgroundColor="$accentColor"
-            icon={<Plus size="$1" />}
+            backgroundColor="$btnBackground"
+            icon={<MessageSquareShare size="$1" color="$btnForeground" />}
+            onPress={() => {navigation.navigate('Notifications', { deviceId });}}
+            radiusL={0}
+            radiusR={0}
+          />
+          <RoundedButton
+            backgroundColor="$btnBackground"
+            icon={<Plus size="$1" color="$btnForeground" />}
             onPress={() => {navigation.navigate('Scanner', { deviceId });}}
             radiusL={0}
             radiusR={12}

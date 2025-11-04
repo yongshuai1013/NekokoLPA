@@ -1,8 +1,8 @@
-import { getColorTint, isDarkColor } from './colorUtils';
+import {getColorTint, isDarkColor} from './colorUtils';
 
 /**
  * Generate Tamagui theme variants based on a primary color
- * 
+ *
  * @param primaryColor - The primary/accent color (hex string)
  * @param baseTheme - Base theme object ('light' or 'dark')
  * @returns Theme object with colors generated from primaryColor
@@ -12,19 +12,22 @@ export function generateTamaguiTheme(
   baseTheme: 'light' | 'dark'
 ): Record<string, string> {
   const isPrimaryDark = isDarkColor(primaryColor);
-  
-  // Generate button foreground color
-  // If primary is dark, get lighter tint (80), otherwise darker tint (20)
-  const buttonForeground = isPrimaryDark
-    ? getColorTint(primaryColor, 80)
-    : getColorTint(primaryColor, 20);
 
-  const baseLightBackground = '#ffffff';
-  // Swap background and row background for light theme:
-  // make page background slightly tinted, and row surfaces pure white
+  // btnBackground is the primaryColor (theme color)
+  // Generate foreground for btnBackground (white if dark, black if light)
+  const isBtnBackgroundDark = isDarkColor(primaryColor);
+  const btnForeground = isBtnBackgroundDark ? '#ffffff' : '#000000';
+
+  // btnAltBackground is the muted/inverted tinted color (tint at 70) - for non-arrange mode arrange button
+  const btnAltBackground = baseTheme === 'light' ? '#c5c5c5' : '#252525';
+
+  // Generate foreground for btnAltBackground (white if dark, black if light)
+  const isBtnAltBackgroundDark = isDarkColor(btnAltBackground);
+  const btnAltForeground = isBtnAltBackgroundDark ? '#ffffff' : '#000000';
+
   const baseLightTheme = {
-    background: getColorTint(baseLightBackground, 4),
-    color: '#000000',
+    background: '#f0f1f5',
+    color: '#0c0c0c',
     borderColor: '#e6e6ea',
     shadowColor: 'rgba(0,0,0,0.06)',
     surfaceRow: '#ffffff',
@@ -32,9 +35,8 @@ export function generateTamaguiTheme(
     surfaceSpecial: '#ffffff',
   };
 
-  const baseDarkBackground = '#0b0b0f';
   const baseDarkTheme = {
-    background: baseDarkBackground,
+    background: '#0b0b0f',
     color: '#e9e9ef',
     borderColor: '#161620',
     shadowColor: 'rgba(0,0,0,0.35)',
@@ -46,11 +48,16 @@ export function generateTamaguiTheme(
   if (baseTheme === 'light') {
     return {
       ...baseLightTheme,
-      accentColor: primaryColor,
+      primaryColor: primaryColor,
       colorFocus: getColorTint(primaryColor, isPrimaryDark ? 75 : 30),
       // Button colors
       buttonBackground: primaryColor,
-      buttonForeground: buttonForeground,
+      // Primary button colors (for notification and plus buttons) - same as primaryColor
+      btnBackground: primaryColor, // Same as primaryColor
+      btnForeground: btnForeground,
+      // Alternative button colors (for non-arrange mode rearrange button)
+      btnAltBackground: btnAltBackground,
+      btnAltForeground: btnAltForeground,
       // Success colors (keeping green as per original)
       backgroundSuccess: '#22c55e',
       backgroundSuccessLight: '#86efac',
@@ -64,20 +71,38 @@ export function generateTamaguiTheme(
       outlineDisabledHeavy: '#d1d5db',
       textDefault: '#000000',
       textNeutral: '#6b7280',
-      color2: '#f9fafb',
-      color7: '#e5e7eb',
-      color10: '#9ca3af',
-      color11: '#6b7280',
+      "color0": "#0a0a0d",
+      "color1": "#18181b",
+      "color2": "#26262a",
+      "color3": "#343438",
+      "color4": "#424246",
+      "color5": "#505055",
+      "color6": "#5e5e63",
+      "color7": "#6c6c71",
+      "color8": "#7a7a7f",
+      "color9": "#89898e",
+      "color10": "#97979c",
+      "color11": "#a5a5aa",
+      "color12": "#b3b3b9",
+      "color13": "#c1c1c7",
+      "color14": "#cfcfd5",
+      "color15": "#dddde4",
+      "color16": "#ebebf2"
     };
   } else {
     // Dark theme
     return {
       ...baseDarkTheme,
-      accentColor: primaryColor,
+      primaryColor: primaryColor,
       colorFocus: getColorTint(primaryColor, isPrimaryDark ? 85 : 25),
       // Button colors
       buttonBackground: primaryColor,
-      buttonForeground: buttonForeground,
+      // Primary button colors (for notification and plus buttons) - same as primaryColor
+      btnBackground: primaryColor, // Same as primaryColor
+      btnForeground: btnForeground,
+      // Alternative button colors (for non-arrange mode rearrange button)
+      btnAltBackground: btnAltBackground,
+      btnAltForeground: btnAltForeground,
       // Success colors
       backgroundSuccess: '#22c55e',
       backgroundSuccessLight: '#4ade80',
@@ -91,13 +116,27 @@ export function generateTamaguiTheme(
       outlineDisabledHeavy: '#3a3a44',
       textDefault: '#e9e9ef',
       textNeutral: '#9ca3af',
-      color2: '#16161d', // surfaceRow in dark mode
-      color7: '#09090c',
-      color10: '#6b7280',
-      color11: '#9ca3af',
+      "color0": "#ebebf2",
+      "color1": "#dddde4",
+      "color2": "#cfcfd5",
+      "color3": "#c1c1c7",
+      "color4": "#b3b3b9",
+      "color5": "#a5a5aa",
+      "color6": "#97979c",
+      "color7": "#89898e",
+      "color8": "#7a7a80",
+      "color9": "#6c6c71",
+      "color10": "#5e5e63",
+      "color11": "#505055",
+      "color12": "#424246",
+      "color13": "#343438",
+      "color14": "#26262a",
+      "color15": "#18181b",
+      "color16": "#0a0a0d"
     };
   }
 }
+
 
 /**
  * Generate both light and dark themes from a primary color

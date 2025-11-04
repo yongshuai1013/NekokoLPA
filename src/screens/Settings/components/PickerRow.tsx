@@ -5,8 +5,7 @@ import Svg, {Defs, LinearGradient as SvgLinearGradient, Rect, Stop} from 'react-
 import {Button as TButton, Input, Slider, Text as TText, useTheme, XStack, YStack} from 'tamagui';
 import {preferences} from '@/utils/mmkv';
 import AppSheet from '@/components/common/AppSheet';
-import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
-import {faPaintbrush} from '@fortawesome/free-solid-svg-icons';
+import {Paintbrush} from '@tamagui/lucide-icons';
 
 export type SettingDataType = {
   key: string;
@@ -33,7 +32,7 @@ const PickerRow = React.memo(function PickerRow({row} : {row: SettingDataType}) 
   if (row.type === 'text') {
     return (
       <View style={{width: '100%'}}>
-        <TText color="$color10" fontSize={12} marginBottom={4}>{t(`main:settings_title_${row.key}`)}</TText>
+        <TText color="$color6" fontSize={12} marginBottom={4}>{t(`main:settings_title_${row.key}`)}</TText>
         <Input
           placeholder={t(`main:settings_title_${row.key}`)}
           value={v}
@@ -46,7 +45,7 @@ const PickerRow = React.memo(function PickerRow({row} : {row: SettingDataType}) 
           borderBottomWidth={0.5}
           backgroundColor="transparent"
           color={theme.textDefault?.val}
-          placeholderTextColor={theme.color10?.val}
+          placeholderTextColor={theme.color6?.val}
           fontSize={16}
           padding={0}
           paddingBottom={8}
@@ -104,7 +103,7 @@ const PickerRow = React.memo(function PickerRow({row} : {row: SettingDataType}) 
             <View style={{ flex: 1 }} />
             <View>
               <TButton backgroundColor={v} onPress={() => showPicker(true)} style={{ maxWidth: 100 }}>
-                <FontAwesomeIcon icon={faPaintbrush} style={{ color: theme.background?.val || '#fff' }} />
+                <Paintbrush size={18} color={theme.background?.val || '#fff'} />
               </TButton>
             </View>
           </View>
@@ -116,7 +115,7 @@ const PickerRow = React.memo(function PickerRow({row} : {row: SettingDataType}) 
               <TText color="$textDefault" fontSize={14}>{currentHex}</TText>
             </XStack>
             <YStack gap={8}>
-              <TText color="$color10" fontSize={12}>Hue</TText>
+              <TText color="$color6" fontSize={12}>Hue</TText>
               <View style={{ position: 'relative', height: 12, borderRadius: 6 }}>
                 <View style={{ height: 12, borderRadius: 12, overflow: 'hidden', top: -3 }}>
                   <Svg width="100%" height="100%">
@@ -143,7 +142,7 @@ const PickerRow = React.memo(function PickerRow({row} : {row: SettingDataType}) 
               </View>
             </YStack>
             <YStack gap={8}>
-              <TText color="$color10" fontSize={12}>Saturation</TText>
+              <TText color="$color6" fontSize={12}>Saturation</TText>
               <View style={{ position: 'relative', height: 12, borderRadius: 6 }}>
                 <View style={{ height: 12, borderRadius: 12, overflow: 'hidden', top: -3 }}>
                   <Svg width="100%" height="100%">
@@ -165,22 +164,22 @@ const PickerRow = React.memo(function PickerRow({row} : {row: SettingDataType}) 
               </View>
             </YStack>
             <YStack gap={8}>
-              <TText color="$color10" fontSize={12}>Lightness</TText>
+              <TText color="$color6" fontSize={12}>Lightness</TText>
               <View style={{ position: 'relative', height: 12, borderRadius: 6 }}>
                 <View style={{ height: 12, borderRadius: 12, overflow: 'hidden', top: -3 }}>
                   <Svg width="100%" height="100%" >
                     <Defs>
                       <SvgLinearGradient id="lightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <Stop offset="0%" stopColor={hslToHex(h, s, 0)} />
+                        <Stop offset="0%" stopColor={hslToHex(h, s, 40)} />
                         <Stop offset="50%" stopColor={hslToHex(h, s, 50)} />
-                        <Stop offset="100%" stopColor={hslToHex(h, s, 100)} />
+                        <Stop offset="100%" stopColor={hslToHex(h, s, 60)} />
                       </SvgLinearGradient>
                     </Defs>
                     <Rect x="0" y="0" width="100%" height="100%" fill="url(#lightGrad)" />
                   </Svg>
                 </View>
                 <View style={{ position: 'absolute', inset: 0, justifyContent: 'center', width: '100%' }}>
-                  <Slider value={[lVal]} onValueChange={(val) => setLVal(Math.round(val[0]))} max={100} step={1} style={{ width: '100%' }}>
+                  <Slider value={[lVal]} onValueChange={(val) => setLVal(Math.round(val[0]))} max={60} min={40} step={1} style={{ width: '100%' }}>
                     <Slider.Track backgroundColor="transparent"><Slider.TrackActive backgroundColor="transparent" /></Slider.Track>
                     <Slider.Thumb index={0} circular size="$2" />
                   </Slider>
